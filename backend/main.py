@@ -161,7 +161,7 @@ def get_prolog_threat_check(clase, zona, horario):
 def explain_inference_chain_with_gemini(chain):
     def get_fallback_message(c):
         chain_str = " -> ".join(c)
-        base = f"[Local Logic Fallback] Cadena detectada: {chain_str}.\n"
+        base = f"[Modo Local] Inferencia de lógica local: {chain_str}.\n"
         if "alerta_intrusion" in c or "intruso_detectado" in c:
             return base + "Alerta de seguridad crítica. El sistema ha inferido la presencia de un intruso en la zona restringida. Despliegue inmediato de contención táctica por el Guardián."
         elif "cliente_en_zona_restringida" in c:
@@ -193,13 +193,108 @@ def explain_inference_chain_with_gemini(chain):
                 return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
             except (KeyError, IndexError, TypeError):
                 print("[WARN GEMINI] Respuesta con estructura inesperada. Usando fallback local.")
-                return f"[Aviso: Respuesta Gemini malformada] {get_fallback_message(chain)}"
+                return get_fallback_message(chain)
         else:
-            print(f"[WARN GEMINI] API retornó {response.status_code}. Usando fallback local.")
-            return f"[Aviso: API Gemini Limite/Error (HTTP {response.status_code})] {get_fallback_message(chain)}"
+            print(f"[WARN GEMINI] API retornó {response.status_code} ({response.text}). Usando fallback local.")
+            return get_fallback_message(chain)
     except (requests.RequestException, Exception) as e:
         print(f"[WARN GEMINI] Error de comunicación ({str(e)}). Usando fallback local.")
-        return f"[Aviso: API Gemini Offline] {get_fallback_message(chain)}"
+        return get_fallback_message(chain)
+
+def get_local_fallback_chat_reply(user_msg, chain, p_state):
+    user_msg_clean = user_msg.strip().lower()
+    
+    # 1. Intruso/Amenazas
+    if any(k in user_msg_clean for k in ["intruso", "amenaza", "robo", "seguridad", "ladron", "alerta", "peligro"]):
+        if grid_state['intruder_pos']:
+            return f"[Modo Local] ALERTA DE SEGURIDAD: Se detecta un intruso en la posición {grid_state['intruder_pos']}. El Guardián (en {grid_state['guardian_pos']}) está ejecutando la búsqueda competitiva Minimax para neutralizar la amenaza."
+        else:
+            return "[Modo Local] SEGURIDAD: No se registran amenazas activas en el perímetro. El almacén se encuentra seguro."
+            
+    # 2. Stock/Inventario/Estantes
+    elif any(k in user_msg_clean for k in ["stock", "inventario", "estante", "arroz", "azucar", "leche", "aceite", "cafe", "atun", "lentejas", "fideos", "producto", "mercancia"]):
+        if p_state and 'stock' in p_state:
+            low_stock = []
+            for st in p_state['stock']:
+                if st.get('cantidad', 0) <= 2:
+                    low_stock.append(f"{st.get('producto')} ({st.get('cantidad')} uds)")
+            if low_stock:
+                return f"[Modo Local] INVENTARIO: Se registran niveles críticos en los siguientes estantes: {', '.join(low_stock)}. Requiere reabastecimiento inmediato."
+            else:
+                return "[Modo Local] INVENTARIO: Todos los estantes tienen niveles de stock estables (capacidad normal)."
+        return "[Modo Local] INVENTARIO: La base de datos de inventario no está accesible en este momento."
+        
+    # 3. Alarmas
+    elif "alarma" in user_msg_clean:
+        if p_state and 'alarmas' in p_state:
+            alarm_info = []
+            for al in p_state['alarmas']:
+                alarm_info.append(f"{al.get('tipo')}: {al.get('estado')}")
+            return f"[Modo Local] ESTADO DE ALARMAS: {', '.join(alarm_info)}."
+        return "[Modo Local] ALARMAS: No se pudo obtener el estado de las alarmas lógicas."
+        
+    # 4. Guardian/Minimax
+    elif any(k in user_msg_clean for k in ["guardian", "minimax", "movimiento", "estrategia", "poda", "heuristica"]):
+        return f"[Modo Local] SISTEMA ESTRATÉGICO: El Guardián patrulla activamente. Utiliza búsqueda Minimax con profundidad de 4 plies y poda Alfa-Beta. Heurística actual: w1=5.0 (cobertura), w2=15.0 (persecución), w3=10.0 (seguridad)."
+        
+    # 5. Cámaras/Visión/OpenCV
+    elif any(k in user_msg_clean for k in ["camara", "cctv", "vision", "opencv", "yolo", "canny", "grises", "blur"]):
+        return f"[Modo Local] SUBSISTEMA DE VISIÓN: Se simulan 4 cámaras CCTV con OpenCV. El pipeline de procesamiento de imagen genera flujos de Canny y grises en tiempo real. YOLOv8-nano detecta objetos aplicando un umbral ético de confianza del 90%."
+        
+    # Default fallback
+    chain_str = " -> ".join(chain)
+    base = f"[Modo Local] Inferencia de lógica local: {chain_str}.\n"
+    if "alerta_intrusion" in chain or "intruso_detectado" in chain:
+        return base + "Acción recomendada: Intervención del Guardián activada. Mantenga vigilado el cuadrante noroeste/noreste."
+    elif "quiebre_stock" in chain:
+        return base + "Acción recomendada: Envíe personal a reponer los estantes vacíos identificados."
+    else:
+        return base + "Acción recomendada: Operaciones normales. No se requieren acciones correctivas."
+
+def get_chat_response_with_gemini_or_fallback(user_msg, chain, p_state):
+    # If API key is not configured, go straight to local fallback
+    if not GEMINI_API_KEY:
+        return get_local_fallback_chat_reply(user_msg, chain, p_state)
+        
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    
+    context = f"""
+    Contexto de la simulación del almacén Chincha:
+    - Posición del Guardián: {grid_state['guardian_pos']}
+    - Posición del Intruso: {grid_state['intruder_pos'] if grid_state['intruder_pos'] else 'Capturado/Inactivo'}
+    - Cámaras activas: {p_state.get('camaras') if p_state else 'No disponible'}
+    - Alarmas activas: {p_state.get('alarmas') if p_state else 'No disponible'}
+    - Inventario de estantes: {p_state.get('stock') if p_state else 'No disponible'}
+    - Inferencia Prolog actual: {chain}
+    """
+    
+    prompt = f"""
+    Eres el Copiloto de Inteligencia Artificial para el sistema de seguridad e inventario del almacén Retail en Chincha.
+    Responde la siguiente pregunta del operador de seguridad: "{user_msg}"
+    Utiliza el contexto de la simulación provisto a continuación:
+    {context}
+    Responde de forma concisa, profesional y directa en español. Si el usuario te pregunta sobre el stock de un producto o sobre la posición del intruso, responde de acuerdo a los datos de la simulación.
+    No uses saludos ni introducciones vacías.
+    """
+    
+    try:
+        response = requests.post(url, json={
+            "contents": [{"parts": [{"text": prompt}]}]
+        }, timeout=5.0)
+        
+        if response.status_code == 200:
+            res_json = response.json()
+            try:
+                return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+            except (KeyError, IndexError, TypeError):
+                print("[WARN GEMINI] Estructura de respuesta de chat inesperada. Usando fallback local.")
+                return get_local_fallback_chat_reply(user_msg, chain, p_state)
+        else:
+            print(f"[WARN GEMINI] API retornó {response.status_code} en chat. Usando fallback local.")
+            return get_local_fallback_chat_reply(user_msg, chain, p_state)
+    except (requests.RequestException, Exception) as e:
+        print(f"[WARN GEMINI] Error de comunicación en chat ({str(e)}). Usando fallback local.")
+        return get_local_fallback_chat_reply(user_msg, chain, p_state)
 
 # REST API Endpoints
 @app.get("/api/state")
@@ -431,6 +526,9 @@ def update_stock(data: StockUpdate):
 @app.post("/api/chat")
 def chat_copilot(req: ChatRequest):
     try:
+        user_msg = req.message.strip()
+        user_msg_lower = user_msg.lower()
+        
         # Fetch current Prolog threat chain
         if grid_state['intruder_pos']:
             iy = grid_state['intruder_pos'][1]
@@ -450,11 +548,20 @@ def chat_copilot(req: ChatRequest):
             else:
                 chain = ["estado_normal", "almacen_seguro"]
                 
-        explanation = explain_inference_chain_with_gemini(chain)
-        return {"reply": explanation}
+        # If it is a generic status update request
+        if user_msg_lower == "explain current status" or not user_msg:
+            explanation = explain_inference_chain_with_gemini(chain)
+            return {"reply": explanation}
+            
+        # Get active database state
+        p_state = fetch_prolog_state()
+        
+        # For custom chat queries, handle with Gemini or Local Fallback
+        reply = get_chat_response_with_gemini_or_fallback(user_msg, chain, p_state)
+        return {"reply": reply}
     except Exception as e:
         print(f"[ERROR CHAT] {str(e)}")
-        return {"reply": f"Error interno del copiloto: {str(e)}"}
+        return {"reply": f"[Copiloto Local] Error interno: {str(e)}"}
 
 @app.post("/api/reset")
 def reset_simulation():
