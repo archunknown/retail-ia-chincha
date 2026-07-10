@@ -25,7 +25,7 @@ from backend.vision_module import VisionSystem
 # Global variables to track state
 prolog_process = None
 prolog_port = 8080
-prolog_url = f"http://localhost:{prolog_port}"
+prolog_url = f"http://127.0.0.1:{prolog_port}"
 
 grid_state = {
     'guardian_pos': [3, 5],
