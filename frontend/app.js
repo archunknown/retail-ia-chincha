@@ -218,7 +218,7 @@ function drawGrid(gridData, guardianPos, intruderPos, camaras) {
 // Fetch general state
 async function fetchState() {
     try {
-        const res = await fetch(`${API_URL}/api/state`);
+        const res = await fetch(`${API_URL}/api/state?camera_id=${currentCamera}`);
         if (!res.ok) throw new Error("Error fetching simulation state");
         const data = await res.json();
         updateUI(data);
@@ -230,7 +230,7 @@ async function fetchState() {
 // Execute 1 single step
 async function stepSimulation() {
     try {
-        const res = await fetch(`${API_URL}/api/step`, { method: "POST" });
+        const res = await fetch(`${API_URL}/api/step?camera_id=${currentCamera}`, { method: "POST" });
         if (!res.ok) throw new Error("Error in execution step");
         const data = await res.json();
         updateUI(data);
@@ -247,7 +247,7 @@ async function stepSimulation() {
 // Confirm alert
 async function confirmThreat() {
     try {
-        const res = await fetch(`${API_URL}/api/action/confirm`, { method: "POST" });
+        const res = await fetch(`${API_URL}/api/action/confirm?camera_id=${currentCamera}`, { method: "POST" });
         if (!res.ok) throw new Error("Error confirming threat");
         const data = await res.json();
         updateUI(data);
@@ -260,7 +260,7 @@ async function confirmThreat() {
 // Discard alert
 async function discardThreat() {
     try {
-        const res = await fetch(`${API_URL}/api/action/discard`, { method: "POST" });
+        const res = await fetch(`${API_URL}/api/action/discard?camera_id=${currentCamera}`, { method: "POST" });
         if (!res.ok) throw new Error("Error discarding threat");
         const data = await res.json();
         updateUI(data);
@@ -275,9 +275,12 @@ async function resetSimulation() {
         if (autoSimInterval) {
             toggleAutoSimulation(); // stop auto run
         }
-        const res = await fetch(`${API_URL}/api/reset`, { method: "POST" });
+        const res = await fetch(`${API_URL}/api/reset?camera_id=${currentCamera}`, { method: "POST" });
         if (!res.ok) throw new Error("Error resetting simulation");
         const data = await res.json();
+        // Reset current positions to avoid jerky transitions
+        currentG = null;
+        currentI = null;
         updateUI(data);
         
         inferenceTerminal.innerHTML = "Base de datos reseteada.<br>Hechos actualizados.";
@@ -308,7 +311,7 @@ function toggleAutoSimulation() {
 // Dynamic stocks updates
 async function updateStockQty(estanteId, quantity) {
     try {
-        const res = await fetch(`${API_URL}/api/update_stock`, {
+        const res = await fetch(`${API_URL}/api/update_stock?camera_id=${currentCamera}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ estante_id: estanteId, cantidad: parseInt(quantity) })
@@ -361,13 +364,88 @@ async function triggerCopilotTranslation() {
 }
 
 // Update complete dashboard GUI
+let latestGrid = [];
+let latestCameras = [];
+let currentG = null;
+let currentI = null;
+let targetG = null;
+let targetI = null;
+let animFrameId = null;
+
+function startAnimation() {
+    if (!animFrameId) {
+        animFrameId = requestAnimationFrame(animationLoop);
+    }
+}
+
+function animationLoop() {
+    let needsMore = false;
+    const ease = 0.15; // smooth animation interpolation factor
+    
+    if (targetG) {
+        if (!currentG) {
+            currentG = { x: targetG[0], y: targetG[1] };
+        } else {
+            const dx = targetG[0] - currentG.x;
+            const dy = targetG[1] - currentG.y;
+            if (Math.abs(dx) > 0.005 || Math.abs(dy) > 0.005) {
+                currentG.x += dx * ease;
+                currentG.y += dy * ease;
+                needsMore = true;
+            } else {
+                currentG.x = targetG[0];
+                currentG.y = targetG[1];
+            }
+        }
+    } else {
+        currentG = null;
+    }
+    
+    if (targetI) {
+        if (!currentI) {
+            currentI = { x: targetI[0], y: targetI[1] };
+        } else {
+            const dx = targetI[0] - currentI.x;
+            const dy = targetI[1] - currentI.y;
+            if (Math.abs(dx) > 0.005 || Math.abs(dy) > 0.005) {
+                currentI.x += dx * ease;
+                currentI.y += dy * ease;
+                needsMore = true;
+            } else {
+                currentI.x = targetI[0];
+                currentI.y = targetI[1];
+            }
+        }
+    } else {
+        currentI = null;
+    }
+    
+    if (latestGrid && latestCameras) {
+        drawGrid(
+            latestGrid, 
+            currentG ? [currentG.x, currentG.y] : null, 
+            currentI ? [currentI.x, currentI.y] : null, 
+            latestCameras
+        );
+    }
+    
+    if (needsMore) {
+        animFrameId = requestAnimationFrame(animationLoop);
+    } else {
+        animFrameId = null;
+    }
+}
+
 function updateUI(data) {
     if (!data) return;
 
-    // 1. Draw grid Canvas
-    if (data.grid && data.camaras) {
-        drawGrid(data.grid, data.guardian_pos, data.intruder_pos, data.camaras);
-    }
+    latestGrid = data.grid;
+    latestCameras = data.camaras;
+    targetG = data.guardian_pos;
+    targetI = data.intruder_pos;
+
+    // Trigger smooth transition animation
+    startAnimation();
     
     // 2. Ethics Warning Alert Box
     const threatAlertMsgEl = document.getElementById("threatAlertMsg");

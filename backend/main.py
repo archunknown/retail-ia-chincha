@@ -298,12 +298,14 @@ def get_chat_response_with_gemini_or_fallback(user_msg, chain, p_state):
 
 # REST API Endpoints
 @app.get("/api/state")
-def get_state():
+def get_state(camera_id: str = None):
     p_state = fetch_prolog_state()
     if p_state:
         # Merge Prolog database state with local Python state
         # Find camera covering intruder if intruder exists
-        if grid_state['intruder_pos']:
+        if camera_id and any(c['id'] == camera_id for c in p_state.get('camaras', [])):
+            grid_state['active_camera'] = camera_id
+        elif grid_state['intruder_pos'] and not grid_state.get('active_camera'):
             ix, iy = grid_state['intruder_pos']
             # Choose camera closest to intruder
             closest_cam = 'camara_1'
@@ -363,9 +365,9 @@ def get_state():
         raise HTTPException(status_code=500, detail="Unable to retrieve Prolog state")
 
 @app.post("/api/step")
-def step_simulation():
+def step_simulation(camera_id: str = None):
     if grid_state['game_over']:
-        return get_state()
+        return get_state(camera_id)
         
     p_state = fetch_prolog_state()
     if not p_state:
@@ -393,7 +395,7 @@ def step_simulation():
         # Confidence between 70% and 89% requires confirmation, if not already confirmed
         if vis_data['manual_confirmation_required'] and not grid_state['intruder_confirmed']:
             grid_state['message'] = "ALERTA: Detección en rango de sospecha (70%-89%). Simulación pausada esperando confirmación humana."
-            return get_state()
+            return get_state(camera_id)
 
         # 1. Intruder's Turn:
         # Check if adjacent to a shelf (value 1) and rob it
@@ -479,19 +481,19 @@ def step_simulation():
         grid_state['game_over'] = True
         grid_state['message'] = "Simulación terminada. No hay amenazas activas."
 
-    return get_state()
+    return get_state(camera_id)
 
 @app.post("/api/action/confirm")
-def confirm_threat():
+def confirm_threat(camera_id: str = None):
     grid_state['intruder_confirmed'] = True
     # Boost confidence to 100% to simulate confirmed alert
     grid_state['intruder_conf'] = 0.99
     grid_state['message'] = "Amenaza confirmada manualmente por el operador. Alarmas activadas."
     grid_state['simulation_logs'].append("Operador confirmó la amenaza de intrusión manualmente.")
-    return get_state()
+    return get_state(camera_id)
 
 @app.post("/api/action/discard")
-def discard_threat():
+def discard_threat(camera_id: str = None):
     old_i = list(grid_state['intruder_pos']) if grid_state['intruder_pos'] else None
     grid_state['intruder_pos'] = None
     grid_state['intruder_confirmed'] = False
@@ -506,10 +508,10 @@ def discard_threat():
             print(f"[WARN] Error al limpiar posición del intruso en Prolog: {e}")
             grid_state['simulation_logs'].append(f"Advertencia: No se pudo sincronizar la eliminación del intruso con Prolog.")
             
-    return get_state()
+    return get_state(camera_id)
 
 @app.post("/api/update_stock")
-def update_stock(data: StockUpdate):
+def update_stock(data: StockUpdate, camera_id: str = None):
     try:
         r = requests.post(f"{prolog_url}/update_stock", json={
             'estante_id': data.estante_id,
@@ -517,7 +519,7 @@ def update_stock(data: StockUpdate):
         })
         if r.status_code == 200:
             grid_state['simulation_logs'].append(f"Stock del {data.estante_id} actualizado manualmente a {data.cantidad}.")
-            return get_state()
+            return get_state(camera_id)
         else:
             raise HTTPException(status_code=r.status_code, detail=r.json().get('message', 'Prolog update error'))
     except Exception as e:
@@ -564,14 +566,14 @@ def chat_copilot(req: ChatRequest):
         return {"reply": f"[Copiloto Local] Error interno: {str(e)}"}
 
 @app.post("/api/reset")
-def reset_simulation():
+def reset_simulation(camera_id: str = None):
     global grid_state
     grid_state = {
         'guardian_pos': [3, 5],
         'intruder_pos': [2, 1],
         'intruder_conf': 0.85,
         'intruder_confirmed': False,
-        'active_camera': 'camara_1',
+        'active_camera': camera_id if camera_id else 'camara_1',
         'simulation_logs': [],
         'minimax_logs': None,
         'vision_logs': None,
@@ -592,7 +594,7 @@ def reset_simulation():
     except Exception as e:
         print(f"Error resetting Prolog grid: {e}")
         
-    return get_state()
+    return get_state(camera_id)
 
 # Serve Frontend static files
 # Make sure directory path exists
