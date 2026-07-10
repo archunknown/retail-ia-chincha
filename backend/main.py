@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 print(f"[DEBUG GEMINI] Clave detectada (Primeros 5 caracteres): {GEMINI_API_KEY[:5] if GEMINI_API_KEY else 'NULA/VACÍA'}")
+USE_REMOTE_GEMINI = False # Desactivado por defecto para garantizar 0ms de latencia y funcionamiento 100% local/offline
 
 import time
 import subprocess
@@ -171,7 +172,7 @@ def explain_inference_chain_with_gemini(chain):
         else:
             return base + "Reporte de almacén general: Operaciones en estado normal."
 
-    if not GEMINI_API_KEY:
+    if not USE_REMOTE_GEMINI or not GEMINI_API_KEY:
         return get_fallback_message(chain)
 
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
@@ -252,8 +253,8 @@ def get_local_fallback_chat_reply(user_msg, chain, p_state):
         return base + "Acción recomendada: Operaciones normales. No se requieren acciones correctivas."
 
 def get_chat_response_with_gemini_or_fallback(user_msg, chain, p_state):
-    # If API key is not configured, go straight to local fallback
-    if not GEMINI_API_KEY:
+    # If API key is not configured or remote Gemini is disabled, go straight to local fallback
+    if not USE_REMOTE_GEMINI or not GEMINI_API_KEY:
         return get_local_fallback_chat_reply(user_msg, chain, p_state)
         
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
