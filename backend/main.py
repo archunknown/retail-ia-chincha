@@ -155,15 +155,20 @@ def get_prolog_threat_check(clase, zona, horario):
         return {'nivel': 'bajo', 'cadena_inferencia': ['error_comunicacion']}
 
 def explain_inference_chain_with_gemini(chain):
-    if not GEMINI_API_KEY:
-        # Fallback simulated response
-        chain_str = " -> ".join(chain)
-        if "alerta_intrusion" in chain:
-            return f"[Simulador Gemini - Sin Clave] Alerta de seguridad crítica. El sistema ha inferido la cadena '{chain_str}'. Un intruso sospechoso ha ingresado a la zona vigilada sin autorización. Se recomienda la intervención inmediata del Guardián."
-        elif "cliente_en_zona_restringida" in chain:
-            return f"[Simulador Gemini - Sin Clave] Advertencia menor. El sistema infirió '{chain_str}'. Se detectó un cliente en la zona de estantes restringidos durante el horario nocturno. Posible malentendido o intento de robo silencioso."
+    def get_fallback_message(c):
+        chain_str = " -> ".join(c)
+        base = f"[Local Logic Fallback] Cadena detectada: {chain_str}.\n"
+        if "alerta_intrusion" in c or "intruso_detectado" in c:
+            return base + "Alerta de seguridad crítica. El sistema ha inferido la presencia de un intruso en la zona restringida. Despliegue inmediato de contención táctica por el Guardián."
+        elif "cliente_en_zona_restringida" in c:
+            return base + "Advertencia operativa. Se detectó un cliente o elemento sospechoso en estante restringido durante el turno de noche. Verifique las cámaras de seguridad."
+        elif "quiebre_stock" in c:
+            return base + "Reabastecimiento crítico. Uno o más estantes han registrado un nivel de stock menor al 20%. Se requiere la reposición inmediata de productos."
         else:
-            return f"[Simulador Gemini - Sin Clave] Reporte de almacén: {chain_str}. Todo bajo control operativo."
+            return base + "Reporte de almacén general: Operaciones en estado normal."
+
+    if not GEMINI_API_KEY:
+        return get_fallback_message(chain)
 
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
     prompt = f"""
@@ -182,9 +187,11 @@ def explain_inference_chain_with_gemini(chain):
             res_json = response.json()
             return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
         else:
-            return f"Error de API Gemini (HTTP {response.status_code}): {response.text}"
+            print(f"[WARN GEMINI] API retornó {response.status_code} ({response.text}). Usando fallback local.")
+            return f"[Aviso: API Gemini Limite/Error (HTTP {response.status_code})] {get_fallback_message(chain)}"
     except Exception as e:
-        return f"Error de comunicación con Gemini: {str(e)}"
+        print(f"[WARN GEMINI] Error de comunicación ({str(e)}). Usando fallback local.")
+        return f"[Aviso: API Gemini Offline] {get_fallback_message(chain)}"
 
 # REST API Endpoints
 @app.get("/api/state")
