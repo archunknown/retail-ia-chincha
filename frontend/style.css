@@ -562,15 +562,19 @@ body {
 .logic-body {
     display: grid;
     grid-template-columns: 1.2fr 1.8fr;
+    grid-template-rows: 1fr;
     gap: 15px;
-    min-height: 250px;
-    max-height: 350px;
+    height: 280px;
+    max-height: 280px;
+    overflow: hidden;
 }
 
 @media (max-width: 768px) {
     .logic-body {
         grid-template-columns: 1fr;
-        max-height: none;
+        grid-template-rows: 1fr 1fr;
+        height: 400px;
+        max-height: 400px;
     }
 }
 
@@ -599,7 +603,6 @@ body {
     overflow-x: hidden;
     flex: 1 1 0;
     min-height: 0;
-    max-height: 280px;
     color: var(--neon-blue);
     line-height: 1.4;
     word-break: break-word;
