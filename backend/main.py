@@ -1,4 +1,11 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+print(f"[DEBUG GEMINI] Clave detectada (Primeros 5 caracteres): {GEMINI_API_KEY[:5] if GEMINI_API_KEY else 'NULA/VACÍA'}")
+
 import time
 import subprocess
 import requests
@@ -9,15 +16,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
 # Import our custom modules
 from backend.motor_estrategico import find_best_move_guardian, find_best_move_intruder, manhattan_distance
 from backend.vision_module import VisionSystem
-
-# Load environment variables
-load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # Global variables to track state
 prolog_process = None
@@ -163,7 +165,7 @@ def explain_inference_chain_with_gemini(chain):
         else:
             return f"[Simulador Gemini - Sin Clave] Reporte de almacén: {chain_str}. Todo bajo control operativo."
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
     prompt = f"""
     Eres el Copiloto de Inteligencia Artificial para el sistema de seguridad e inventario del almacén Retail en Chincha.
     El cerebro lógico Prolog ha retornado la siguiente cadena de inferencia de amenazas: {chain}.
