@@ -66,7 +66,7 @@ chatInput.addEventListener("keypress", (e) => {
 
 cameraSelector.addEventListener("change", (e) => {
     currentCamera = e.target.value;
-    updateDashboard();
+    fetchState();
 });
 
 // Initial Load
@@ -362,14 +362,21 @@ async function triggerCopilotTranslation() {
 
 // Update complete dashboard GUI
 function updateUI(data) {
+    if (!data) return;
+
     // 1. Draw grid Canvas
-    drawGrid(data.grid, data.guardian_pos, data.intruder_pos, data.camaras);
+    if (data.grid && data.camaras) {
+        drawGrid(data.grid, data.guardian_pos, data.intruder_pos, data.camaras);
+    }
     
     // 2. Ethics Warning Alert Box
+    const threatAlertMsgEl = document.getElementById("threatAlertMsg");
     if (data.vision_logs && data.vision_logs.manual_confirmation_required && !data.intruder_confirmed) {
         threatAlertBox.classList.remove("hidden");
         const det = data.vision_logs.unconfirmed_detection;
-        threatAlertMsg.innerHTML = `Detección de <strong>${det.class}</strong> con <strong>${(det.conf*100).toFixed(1)}%</strong> de confianza. ¿Confirmar el despliegue del Guardián?`;
+        if (det && threatAlertMsgEl) {
+            threatAlertMsgEl.innerHTML = `Detección de <strong>${det.class || 'Desconocido'}</strong> con <strong>${(det.conf ? (det.conf*100).toFixed(1) : '?')}%</strong> de confianza. ¿Confirmar el despliegue del Guardián?`;
+        }
         
         // Pause auto-sim if active
         if (autoSimInterval) {
@@ -380,25 +387,29 @@ function updateUI(data) {
     }
 
     // 3. Stock Controls panel
-    renderStockControls(data.stock);
+    if (data.stock) {
+        renderStockControls(data.stock);
+    }
 
     // 4. Update cameras pipeline Base64 views
     if (data.vision_logs) {
-        imgYolo.src = "data:image/jpeg;base64," + data.vision_logs.yolo_detect;
-        imgOriginal.src = "data:image/jpeg;base64," + data.vision_logs.original;
-        imgGrayscale.src = "data:image/jpeg;base64," + data.vision_logs.grayscale;
-        imgBlur.src = "data:image/jpeg;base64," + data.vision_logs.blur;
-        imgCanny.src = "data:image/jpeg;base64," + data.vision_logs.canny;
+        if (data.vision_logs.yolo_detect) imgYolo.src = "data:image/jpeg;base64," + data.vision_logs.yolo_detect;
+        if (data.vision_logs.original) imgOriginal.src = "data:image/jpeg;base64," + data.vision_logs.original;
+        if (data.vision_logs.grayscale) imgGrayscale.src = "data:image/jpeg;base64," + data.vision_logs.grayscale;
+        if (data.vision_logs.blur) imgBlur.src = "data:image/jpeg;base64," + data.vision_logs.blur;
+        if (data.vision_logs.canny) imgCanny.src = "data:image/jpeg;base64," + data.vision_logs.canny;
     }
 
     // 5. Alarms State UI
     let alarmIntrusionActive = false;
     let alarmReplenishmentActive = false;
     
-    data.alarmas.forEach(al => {
-        if (al.tipo === "intrusion" && al.estado === "activa") alarmIntrusionActive = true;
-        if (al.tipo === "reabastecimiento" && al.estado === "activa") alarmReplenishmentActive = true;
-    });
+    if (data.alarmas) {
+        data.alarmas.forEach(al => {
+            if (al.tipo === "intrusion" && al.estado === "activa") alarmIntrusionActive = true;
+            if (al.tipo === "reabastecimiento" && al.estado === "activa") alarmReplenishmentActive = true;
+        });
+    }
 
     if (alarmIntrusionActive) {
         alarmIntrusion.textContent = "Intrusión: ACTIVA";
@@ -418,34 +429,42 @@ function updateUI(data) {
 
     // 6. Prolog Inferences Terminal
     let factsHtml = `<strong>FACTS DATABASE (Prolog active list):</strong><br>`;
-    data.grid.forEach(cell => {
-        if (cell.val !== 0) {
-            factsHtml += `celda(${cell.x}, ${cell.y}, ${cell.val}).<br>`;
-        }
-    });
-    data.stock.forEach(st => {
-        factsHtml += `estante_producto(${st.estante_id}, "${st.producto}", ${st.cantidad}, ${st.max_cap}).<br>`;
-    });
+    if (data.grid) {
+        data.grid.forEach(cell => {
+            if (cell.val !== 0) {
+                factsHtml += `celda(${cell.x}, ${cell.y}, ${cell.val}).<br>`;
+            }
+        });
+    }
+    if (data.stock) {
+        data.stock.forEach(st => {
+            factsHtml += `estante_producto(${st.estante_id}, "${st.producto}", ${st.cantidad}, ${st.max_cap}).<br>`;
+        });
+    }
     
     if (data.threat_chain && data.threat_chain.length > 0) {
-        factsHtml += `<br><span class="txt-neon-red"><strong>INFERENCIA DE AMENAZAS:</strong><br>${data.threat_chain.join(" -> ")} (Nivel: ${data.threat_level.toUpperCase()})</span>`;
+        factsHtml += `<br><span style="color: var(--neon-red)"><strong>INFERENCIA DE AMENAZAS:</strong><br>${data.threat_chain.join(" -> ")} (Nivel: ${(data.threat_level || 'N/A').toUpperCase()})</span>`;
     } else {
-        factsHtml += `<br><span class="txt-neon-green"><strong>ESTADO SEGURO:</strong><br>Sin intrusiones detectadas.</span>`;
+        factsHtml += `<br><span style="color: var(--neon-green)"><strong>ESTADO SEGURO:</strong><br>Sin intrusiones detectadas.</span>`;
     }
     inferenceTerminal.innerHTML = factsHtml;
 
     // 7. Minimax Search Metrics
     if (data.minimax_logs) {
-        valNodes.textContent = data.minimax_logs.nodes_visited;
-        valPrunings.textContent = data.minimax_logs.prunings;
-        valHeuristic.textContent = data.minimax_logs.eval_value.toFixed(2);
+        valNodes.textContent = data.minimax_logs.nodes_visited || 0;
+        valPrunings.textContent = data.minimax_logs.prunings || 0;
+        valHeuristic.textContent = (data.minimax_logs.eval_value != null) ? data.minimax_logs.eval_value.toFixed(2) : "0.00";
+        
+        const gPos = data.guardian_pos ? `(${data.guardian_pos[0]}, ${data.guardian_pos[1]})` : 'N/A';
+        const iPos = data.intruder_pos ? `(${data.intruder_pos[0]}, ${data.intruder_pos[1]})` : 'Capturado';
+        const mMove = data.minimax_logs.move ? `(${data.minimax_logs.move[0]}, ${data.minimax_logs.move[1]})` : 'N/A';
         
         let miniLog = `[Turno Guardián]<br>`;
-        miniLog += `• Posición Guardián: (${data.guardian_pos[0]}, ${data.guardian_pos[1]})<br>`;
-        miniLog += `• Posición Intruso: (${data.intruder_pos ? data.intruder_pos[0] + ', ' + data.intruder_pos[1] : 'Capturado'})<br>`;
-        miniLog += `• Mejor movimiento calculado: (${data.minimax_logs.move[0]}, ${data.minimax_logs.move[1]})<br>`;
-        miniLog += `• Calificación heurística óptima: ${data.minimax_logs.eval_value.toFixed(2)}<br>`;
-        miniLog += `• Prunings ejecutadas: ${data.minimax_logs.prunings}<br>`;
+        miniLog += `• Posición Guardián: ${gPos}<br>`;
+        miniLog += `• Posición Intruso: ${iPos}<br>`;
+        miniLog += `• Mejor movimiento calculado: ${mMove}<br>`;
+        miniLog += `• Calificación heurística óptima: ${(data.minimax_logs.eval_value != null) ? data.minimax_logs.eval_value.toFixed(2) : '0.00'}<br>`;
+        miniLog += `• Prunings ejecutadas: ${data.minimax_logs.prunings || 0}<br>`;
         minimaxTerminal.innerHTML = miniLog;
     } else {
         valNodes.textContent = "0";

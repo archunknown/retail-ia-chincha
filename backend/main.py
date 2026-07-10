@@ -53,12 +53,16 @@ async def lifespan(app: FastAPI):
     global prolog_process
     # 1. Start Prolog server via subprocess.Popen (non-blocking)
     print("Iniciando servidor lógico Prolog en segundo plano...")
-    prolog_process = subprocess.Popen(
-        ['swipl', '-q', '-s', 'backend/prolog/sistema_logico.pl', '-t', f'server({prolog_port})'],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    try:
+        prolog_process = subprocess.Popen(
+            ['swipl', '-q', '-s', 'backend/prolog/sistema_logico.pl', '-t', f'server({prolog_port})'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except (FileNotFoundError, OSError) as e:
+        print(f"ERROR CRÍTICO: No se pudo iniciar SWI-Prolog ({e}). Asegúrese de que 'swipl' esté instalado y en el PATH.")
+        prolog_process = None
     
     # Wait for Prolog to start
     retries = 10
@@ -185,11 +189,15 @@ def explain_inference_chain_with_gemini(chain):
         
         if response.status_code == 200:
             res_json = response.json()
-            return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+            try:
+                return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+            except (KeyError, IndexError, TypeError):
+                print("[WARN GEMINI] Respuesta con estructura inesperada. Usando fallback local.")
+                return f"[Aviso: Respuesta Gemini malformada] {get_fallback_message(chain)}"
         else:
-            print(f"[WARN GEMINI] API retornó {response.status_code} ({response.text}). Usando fallback local.")
+            print(f"[WARN GEMINI] API retornó {response.status_code}. Usando fallback local.")
             return f"[Aviso: API Gemini Limite/Error (HTTP {response.status_code})] {get_fallback_message(chain)}"
-    except Exception as e:
+    except (requests.RequestException, Exception) as e:
         print(f"[WARN GEMINI] Error de comunicación ({str(e)}). Usando fallback local.")
         return f"[Aviso: API Gemini Offline] {get_fallback_message(chain)}"
 
@@ -399,8 +407,9 @@ def discard_threat():
     if old_i:
         try:
             requests.post(f"{prolog_url}/update_grid", json={'x': old_i[0], 'y': old_i[1], 'val': 0})
-        except Exception:
-            pass
+        except (requests.RequestException, Exception) as e:
+            print(f"[WARN] Error al limpiar posición del intruso en Prolog: {e}")
+            grid_state['simulation_logs'].append(f"Advertencia: No se pudo sincronizar la eliminación del intruso con Prolog.")
             
     return get_state()
 
@@ -421,27 +430,31 @@ def update_stock(data: StockUpdate):
 
 @app.post("/api/chat")
 def chat_copilot(req: ChatRequest):
-    # Fetch current Prolog threat chain
-    if grid_state['intruder_pos']:
-        iy = grid_state['intruder_pos'][1]
-        zona = 'restringida' if iy in (1, 3, 5) else 'publica'
-        threat_eval = get_prolog_threat_check('intruso', zona, 'noche')
-        chain = threat_eval['cadena_inferencia']
-    else:
-        # Check stockouts
-        p_state = fetch_prolog_state()
-        empty_shelves = []
-        if p_state:
-            for s in p_state['stock']:
-                if s['cantidad'] == 0:
-                    empty_shelves.append(f"{s['estante_id']}_vacio")
-        if empty_shelves:
-            chain = ["quiebre_stock"] + empty_shelves
+    try:
+        # Fetch current Prolog threat chain
+        if grid_state['intruder_pos']:
+            iy = grid_state['intruder_pos'][1]
+            zona = 'restringida' if iy in (1, 3, 5) else 'publica'
+            threat_eval = get_prolog_threat_check('intruso', zona, 'noche')
+            chain = threat_eval.get('cadena_inferencia', ['error_comunicacion'])
         else:
-            chain = ["estado_normal", "almacen_seguro"]
-            
-    explanation = explain_inference_chain_with_gemini(chain)
-    return {"reply": explanation}
+            # Check stockouts
+            p_state = fetch_prolog_state()
+            empty_shelves = []
+            if p_state and 'stock' in p_state:
+                for s in p_state['stock']:
+                    if s.get('cantidad', 0) == 0:
+                        empty_shelves.append(f"{s.get('estante_id', 'desconocido')}_vacio")
+            if empty_shelves:
+                chain = ["quiebre_stock"] + empty_shelves
+            else:
+                chain = ["estado_normal", "almacen_seguro"]
+                
+        explanation = explain_inference_chain_with_gemini(chain)
+        return {"reply": explanation}
+    except Exception as e:
+        print(f"[ERROR CHAT] {str(e)}")
+        return {"reply": f"Error interno del copiloto: {str(e)}"}
 
 @app.post("/api/reset")
 def reset_simulation():
