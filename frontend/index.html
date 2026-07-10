@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail IA Chincha - Sistema de Gestión Autónomo</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1>RETAIL IA CHINCHA</h1>
+                <p class="subtitle">Monografía Semiavanzada • Prototipo de Inventario Autónomo y Seguridad Perimetral</p>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator">
+                    <span class="status-dot pulsing"></span>
+                    <span class="status-text">SISTEMA ACTIVO</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <main class="dashboard-grid">
+            <!-- Left Side: Simulator and Controls -->
+            <section class="grid-col left-col">
+                <!-- 2D Simulator Card -->
+                <div class="dashboard-card glass-card card-grid-sim">
+                    <div class="card-header">
+                        <h2>SIMULADOR DE ALMACÉN 2D</h2>
+                        <span class="badge">Vista Superior (5x5)</span>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="warehouseCanvas" width="400" height="400"></canvas>
+                    </div>
+                    <div class="grid-legend">
+                        <div class="legend-item"><span class="legend-color path"></span><span>Pasillo</span></div>
+                        <div class="legend-item"><span class="legend-color shelf-full"></span><span>Estante Lleno</span></div>
+                        <div class="legend-item"><span class="legend-color shelf-empty"></span><span>Quiebre Stock</span></div>
+                        <div class="legend-item"><span class="legend-color guardian"></span><span>Guardián</span></div>
+                        <div class="legend-item"><span class="legend-color intruder"></span><span>Intruso</span></div>
+                        <div class="legend-item"><span class="legend-color camera"></span><span>Cámara</span></div>
+                    </div>
+                </div>
+
+                <!-- Simulation Controls Card -->
+                <div class="dashboard-card glass-card card-controls">
+                    <div class="card-header">
+                        <h2>PANEL DE CONTROL</h2>
+                    </div>
+                    <div class="control-actions">
+                        <button id="btnStep" class="btn btn-primary">EJECUTAR PASO</button>
+                        <button id="btnAuto" class="btn btn-secondary">AUTO-SIMULACIÓN: OFF</button>
+                        <button id="btnReset" class="btn btn-danger">REINICIAR</button>
+                    </div>
+                    
+                    <div class="threat-alert-box hidden" id="threatAlertBox">
+                        <div class="alert-content">
+                            <span class="alert-icon">⚠️</span>
+                            <div>
+                                <h3>CONFIRMACIÓN ÉTICA DE SEGURIDAD</h3>
+                                <p id="threatAlertMsg">Detección de intruso sospechoso en rango de confianza. Confirme o descarte la alerta.</p>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button id="btnConfirmThreat" class="btn btn-warning">CONFIRMAR AMENAZA</button>
+                            <button id="btnDiscardThreat" class="btn btn-outline">DESCARTAR ALERTA</button>
+                        </div>
+                    </div>
+
+                    <div class="stock-management">
+                        <h3>MODIFICAR INVENTARIO MANUAL</h3>
+                        <div class="stock-grid" id="stockControlsGrid">
+                            <!-- Dynamically generated stock input controls -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Vision, Logic and Search Logs -->
+            <section class="grid-col right-col">
+                <!-- CCTV Vision Feed Card -->
+                <div class="dashboard-card glass-card card-vision">
+                    <div class="card-header">
+                        <h2>MONITOREO DE CÁMARAS (PIPELINE OPENCV / YOLOv8)</h2>
+                        <select id="cameraSelector" class="custom-select">
+                            <option value="camara_1">Cámara 1 (2,2) - Noroeste</option>
+                            <option value="camara_2">Cámara 2 (4,2) - Noreste</option>
+                            <option value="camara_3">Cámara 3 (2,4) - Suroeste</option>
+                            <option value="camara_4">Cámara 4 (4,4) - Sureste</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Vision Pipeline Tabs -->
+                    <div class="pipeline-tabs">
+                        <button class="tab-link active" data-target="tab-yolo">YOLOv8 DETECT</button>
+                        <button class="tab-link" data-target="tab-original">ORIGINAL</button>
+                        <button class="tab-link" data-target="tab-grayscale">GRISES</button>
+                        <button class="tab-link" data-target="tab-blur">FILTRO GAUSS</button>
+                        <button class="tab-link" data-target="tab-canny">CANNY EDGES</button>
+                    </div>
+
+                    <div class="tab-content-container">
+                        <div class="tab-panel active" id="tab-yolo">
+                            <img id="imgYolo" src="" alt="YOLOv8 Detection Feed">
+                        </div>
+                        <div class="tab-panel" id="tab-original">
+                            <img id="imgOriginal" src="" alt="Original Camera Feed">
+                        </div>
+                        <div class="tab-panel" id="tab-grayscale">
+                            <img id="imgGrayscale" src="" alt="Grayscale Pipeline">
+                        </div>
+                        <div class="tab-panel" id="tab-blur">
+                            <img id="imgBlur" src="" alt="Gaussian Blur Pipeline">
+                        </div>
+                        <div class="tab-panel" id="tab-canny">
+                            <img id="imgCanny" src="" alt="Canny Edge Detection Pipeline">
+                        </div>
+                    </div>
+                    
+                    <div class="camera-info">
+                        <p>Estado de Cámara: <strong id="camStatus" class="txt-neon-green">ACTIVA</strong> | Resolución Sim: <strong>450x450px</strong></p>
+                    </div>
+                </div>
+
+                <!-- Logic & Copilot Card -->
+                <div class="dashboard-card glass-card card-logic">
+                    <div class="card-header">
+                        <h2>CEREBRO LÓGICO Y COPILOTO CONVERSACIONAL (GEMINI API)</h2>
+                        <div class="alarms-container">
+                            <span class="alarm-badge" id="alarmIntrusion">Intrusión: OFF</span>
+                            <span class="alarm-badge" id="alarmReplenishment">Quiebre: OFF</span>
+                        </div>
+                    </div>
+                    <div class="logic-body">
+                        <div class="logic-pane">
+                            <h3>CADENA DE INFERENCIA PROLOG</h3>
+                            <div class="terminal-box" id="inferenceTerminal">
+                                <!-- Prolog inference chain goes here -->
+                            </div>
+                        </div>
+                        <div class="copilot-pane">
+                            <h3>COPILOTO DE SEGURIDAD INTELIGENTE</h3>
+                            <div class="copilot-chat-output" id="copilotResponse">
+                                Presiona el botón de consulta o chatea con el Copiloto para interpretar los hechos lógicos de Prolog.
+                            </div>
+                            <div class="chat-input-area">
+                                <input type="text" id="chatInput" placeholder="Pregunta sobre el estado de la seguridad...">
+                                <button id="btnSendChat" class="btn btn-accent">CONSULTAR</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strategic Engine (Minimax Logs) Card -->
+                <div class="dashboard-card glass-card card-strategic">
+                    <div class="card-header">
+                        <h2>BÚSQUEDA COMPETITIVA (MINIMAX ALFA-BETA DEPTH 4)</h2>
+                    </div>
+                    <div class="strategic-body">
+                        <div class="metrics-grid">
+                            <div class="metric-box">
+                                <span class="metric-label">Nodos Expandidos</span>
+                                <span class="metric-val" id="valNodes">0</span>
+                            </div>
+                            <div class="metric-box">
+                                <span class="metric-label">Podas Realizadas</span>
+                                <span class="metric-val" id="valPrunings">0</span>
+                            </div>
+                            <div class="metric-box">
+                                <span class="metric-label">Valor Heurístico</span>
+                                <span class="metric-val" id="valHeuristic">0.00</span>
+                            </div>
+                        </div>
+                        <div class="terminal-box" id="minimaxTerminal">
+                            <!-- Live minimax step calculations -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
