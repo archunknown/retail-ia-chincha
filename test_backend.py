@@ -1,5 +1,7 @@
 import unittest
+from unittest.mock import patch
 import numpy as np
+from backend import main as backend_main
 from backend.motor_estrategico import find_best_move_guardian, find_best_move_intruder, evaluate_state
 from backend.vision_module import VisionSystem
 
@@ -35,6 +37,21 @@ class TestStrategicEngine(unittest.TestCase):
         self.assertIsNotNone(move)
         # Should be adjacent to (2, 1) and walkable
         self.assertTrue(abs(move[0] - 2) + abs(move[1] - 1) <= 1)
+
+class TestGeminiFallback(unittest.TestCase):
+    def test_fallback_message_mentions_local_mode_when_api_missing(self):
+        with patch.object(backend_main, 'GEMINI_API_KEY', ''):
+            response = backend_main.explain_inference_chain_with_gemini(['intruso_detectado'])
+        self.assertIn('Modo Local', response)
+        self.assertNotIn('API Gemini Limite/Error', response)
+
+    def test_fallback_message_mentions_local_mode_when_api_returns_error(self):
+        with patch.object(backend_main, 'GEMINI_API_KEY', 'fake-key'):
+            with patch('backend.main.requests.post') as mock_post:
+                mock_post.return_value.status_code = 429
+                response = backend_main.explain_inference_chain_with_gemini(['quiebre_stock'])
+        self.assertIn('Modo Local', response)
+        self.assertIn('lógica local', response.lower())
 
 class TestVisionSystem(unittest.TestCase):
     def setUp(self):
