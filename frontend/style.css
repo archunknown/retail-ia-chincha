@@ -63,7 +63,8 @@ body {
 
 /* Layout container */
 .dashboard-container {
-    max-width: 1600px;
+    max-width: 1880px;
+    width: 100%;
     height: 100%;
     margin: 0 auto;
     display: flex;
@@ -135,17 +136,62 @@ body {
     color: var(--neon-green);
 }
 
-/* Main Grid Layout */
+/* Main Grid Layout - Widescreen Desktop (3 Columns) */
 .dashboard-grid {
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-columns: 1fr 1.5fr;
+    grid-template-columns: 1.15fr 1.3fr 1.25fr;
+    grid-template-rows: 1.1fr 0.9fr;
+    grid-template-areas: 
+        "sim cctv logic"
+        "ctrl cctv minimax";
     gap: 12px;
     overflow: hidden;
 }
 
-@media (max-width: 1100px) {
+/* Flatten columns on desktop to allow direct grid placement */
+.left-col, .right-col {
+    display: contents;
+}
+
+.card-grid-sim { grid-area: sim; }
+.card-controls { grid-area: ctrl; }
+.card-vision { grid-area: cctv; }
+.card-logic { grid-area: logic; }
+.card-strategic { grid-area: minimax; }
+
+/* Mid-range monitors (2 Columns) */
+@media (max-width: 1200px) {
+    .left-col, .right-col {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+        overflow: hidden;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr 1.4fr;
+        grid-template-rows: none;
+        grid-template-areas: none;
+        overflow: hidden;
+    }
+    
+    /* Reset grid areas to fall back to flex columns */
+    .card-grid-sim, .card-controls, .card-vision, .card-logic, .card-strategic {
+        grid-area: auto;
+    }
+    
+    .left-col .card-grid-sim { flex: 1.5; }
+    .left-col .card-controls { flex: 1; }
+    .right-col .card-vision { flex: 1.3; }
+    .right-col .card-logic { flex: 1; }
+    .right-col .card-strategic { flex: 0.9; }
+}
+
+/* Mobile and small tablets (1 Column, scrollable) */
+@media (max-width: 800px) {
     body {
         height: auto;
         overflow-y: auto;
@@ -158,34 +204,12 @@ body {
         height: auto;
         overflow: visible;
     }
-}
-
-.grid-col {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.left-col .card-grid-sim {
-    flex: 1.5;
-}
-.left-col .card-controls {
-    flex: 1;
-}
-
-.right-col .card-vision {
-    flex: 1.3;
-}
-.right-col .card-logic {
-    flex: 1;
-}
-.right-col .card-strategic {
-    flex: 0.9;
-}
-
-@media (max-width: 1100px) {
+    .left-col, .right-col {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+    }
     .left-col .card-grid-sim,
     .left-col .card-controls,
     .right-col .card-vision,
