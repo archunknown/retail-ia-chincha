@@ -21,20 +21,20 @@ def create_manual():
     
     styles = getSampleStyleSheet()
     
-    # Custom styles matching our theme palette (Deep Dark Blue, Neon Blue, Teal)
-    primary_color = colors.HexColor("#0b0f19")
+    # Custom colors: Deep Indigo, Dark Slate, Vibrant Teal, Charcoal Text
+    primary_color = colors.HexColor("#0f172a")
     secondary_color = colors.HexColor("#1e293b")
-    accent_color = colors.HexColor("#00a8cc")
-    text_color = colors.HexColor("#1f2937")
+    accent_color = colors.HexColor("#0ea5e9")
+    text_color = colors.HexColor("#334155")
     
     title_style = ParagraphStyle(
         'DocTitle',
         parent=styles['Heading1'],
         fontName='Helvetica-Bold',
-        fontSize=24,
-        leading=28,
+        fontSize=22,
+        leading=26,
         textColor=primary_color,
-        spaceAfter=15,
+        spaceAfter=12,
         alignment=1 # Center
     )
     
@@ -42,10 +42,10 @@ def create_manual():
         'DocSubTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Oblique',
-        fontSize=12,
-        leading=16,
-        textColor=colors.HexColor("#4b5563"),
-        spaceAfter=30,
+        fontSize=11,
+        leading=15,
+        textColor=colors.HexColor("#64748b"),
+        spaceAfter=25,
         alignment=1 # Center
     )
     
@@ -53,11 +53,11 @@ def create_manual():
         'SectionH1',
         parent=styles['Heading2'],
         fontName='Helvetica-Bold',
-        fontSize=16,
-        leading=20,
+        fontSize=15,
+        leading=19,
         textColor=primary_color,
-        spaceBefore=15,
-        spaceAfter=10,
+        spaceBefore=12,
+        spaceAfter=8,
         keepWithNext=True
     )
     
@@ -65,11 +65,11 @@ def create_manual():
         'SectionH2',
         parent=styles['Heading3'],
         fontName='Helvetica-Bold',
-        fontSize=12,
-        leading=16,
+        fontSize=11,
+        leading=14,
         textColor=accent_color,
-        spaceBefore=10,
-        spaceAfter=6,
+        spaceBefore=8,
+        spaceAfter=4,
         keepWithNext=True
     )
     
@@ -77,8 +77,8 @@ def create_manual():
         'BodyTextCustom',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=10,
-        leading=14,
+        fontSize=9.5,
+        leading=13.5,
         textColor=text_color,
         spaceAfter=8
     )
@@ -87,159 +87,145 @@ def create_manual():
         'BulletCustom',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=10,
-        leading=14,
+        fontSize=9.5,
+        leading=13.5,
         textColor=text_color,
-        leftIndent=20,
+        leftIndent=15,
         firstLineIndent=-10,
         spaceAfter=4
     )
     
-    table_header_style = ParagraphStyle(
-        'TableHeader',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=10,
-        leading=12,
-        textColor=colors.white
-    )
-    
     story = []
     
-    # ---------------- TITLE PAGE ----------------
+    # ---------------- PORTADA ----------------
     story.append(Spacer(1, 1.5 * inch))
     story.append(Paragraph("MANUAL DE USUARIO", title_style))
-    story.append(Paragraph("Prototipo de Gestión de Inventario Autónomo y Seguridad Perimetral", ParagraphStyle('Sub', parent=title_style, fontSize=16, leading=20, textColor=accent_color)))
+    story.append(Paragraph("SISTEMA DE GESTIÓN AUTÓNOMA DE INVENTARIO Y SEGURIDAD", ParagraphStyle('Sub', parent=title_style, fontSize=14, leading=18, textColor=accent_color)))
     story.append(Spacer(1, 10))
-    story.append(Paragraph("Proyecto Educativo Retail IA Chincha Alta", subtitle_style))
+    story.append(Paragraph("Guía Práctica e Intuitiva para Operadores de Almacén", subtitle_style))
     
-    story.append(Spacer(1, 2 * inch))
+    story.append(Spacer(1, 1.8 * inch))
     
-    # Information Box table
     info_data = [
-        [Paragraph("<b>Destinado a:</b> Operadores de Tienda y Personal de Seguridad", body_style)],
-        [Paragraph("<b>Objetivo:</b> Monitorear y operar el almacén automatizado sin tecnicismos", body_style)],
-        [Paragraph("<b>Versión:</b> 1.0 (Estable)", body_style)],
-        [Paragraph("<b>Fecha:</b> Julio de 2026", body_style)]
+        [Paragraph("<b>Proyecto:</b> Retail IA - Chincha Alta", body_style)],
+        [Paragraph("<b>Propósito:</b> Control inteligente de stock y respuesta a intrusiones sin tecnicismos", body_style)],
+        [Paragraph("<b>Público Objetivo:</b> Operadores de tienda, personal de logística y seguridad", body_style)],
+        [Paragraph("<b>Estado de Aplicación:</b> Fase 1 (Simulación Operativa Local)", body_style)]
     ]
     t_info = Table(info_data, colWidths=[5 * inch])
     t_info.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f3f4f6")),
-        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#e5e7eb")),
-        ('PADDING', (0,0), (-1,-1), 12),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#cbd5e1")),
+        ('PADDING', (0,0), (-1,-1), 10),
         ('ALIGN', (0,0), (-1,-1), 'CENTER')
     ]))
     story.append(t_info)
     
     story.append(PageBreak())
     
-    # ---------------- SECTION 1 ----------------
-    story.append(Paragraph("1. Introducción al Sistema", h1_style))
+    # ---------------- ¿QUÉ ES Y PARA QUÉ SIRVE? ----------------
+    story.append(Paragraph("1. ¿Qué es este sistema y para qué sirve?", h1_style))
     story.append(Paragraph(
-        "Este prototipo representa un almacén moderno e inteligente en Chincha Alta. "
-        "Su propósito es asistir a operarios humanos (no desarrolladores) en dos tareas críticas cotidianas: "
-        "<b>vigilar la seguridad física</b> del almacén (detectando y conteniendo intrusos) y <b>controlar el abastecimiento</b> de mercadería en estanterías de forma automatizada.",
-        body_style
-    ))
-    story.append(Paragraph(
-        "El sistema combina un robot autónomo patrullero (el <b>Guardián</b>), cámaras de seguridad con análisis digital de imágenes en tiempo real y un <b>Copiloto Conversacional inteligente</b> con el que se puede chatear en español para pedir reportes instantáneos.",
+        "Este prototipo es una herramienta interactiva diseñada para simular y gestionar las operaciones diarias de un almacén "
+        "de retail en Chincha. El sistema integra sensores virtuales, lógica automatizada y un robot patrullero para resolver "
+        "dos problemas comunes en la logística de tiendas: <b>la sustracción no autorizada de mercadería</b> y el <b>desabastecimiento de productos</b> en estanterías.",
         body_style
     ))
     
+    story.append(Paragraph("1.1. Usos Prácticos y Beneficios Principales", h2_style))
+    story.append(Paragraph(
+        "Este prototipo permite realizar múltiples tareas operativas en la práctica:",
+        body_style
+    ))
+    story.append(Paragraph("• <b>Prevención de Pérdidas sin Vigilancia Constante:</b> El sistema detecta automáticamente la presencia de personas en zonas restringidas y despliega al robot de forma inmediata sin necesidad de que el operador supervise la pantalla todo el día.", bullet_style))
+    story.append(Paragraph("• <b>Monitoreo Remoto del Nivel de Abastecimiento:</b> Avisa visualmente mediante alarmas y estanterías en color rojo cuando un producto se agota, facilitando la orden rápida de reposición.", bullet_style))
+    story.append(Paragraph("• <b>Auditoría Conversacional por Voz o Texto:</b> Permite al gerente de tienda preguntar directamente <i>'¿Qué estante necesita reposición?'</i> y obtener una respuesta redactada en español natural, eliminando la necesidad de leer complicadas tablas de datos.", bullet_style))
+    story.append(Paragraph("• <b>Entrenamiento de Personal:</b> Sirve como simulador interactivo para enseñar a nuevos operarios cómo responder ante alertas y coordinar tareas de seguridad en tienda.", bullet_style))
+
     story.append(Spacer(1, 10))
-    
-    # ---------------- SECTION 2 ----------------
-    story.append(Paragraph("2. Mapa del Almacén (Simulador 2D)", h1_style))
+
+    # ---------------- EXPLICACIÓN DE LOS 6 MÓDULOS ----------------
+    story.append(Paragraph("2. Descripción de los Módulos del Sistema", h1_style))
     story.append(Paragraph(
-        "El almacén se representa visualmente como una cuadrícula interactiva de 5 filas por 5 columnas. "
-        "Dentro de este mapa, cada elemento tiene una representación de color y forma específica:",
+        "El panel de control (Dashboard) está dividido en 6 módulos intuitivos que interactúan entre sí. A continuación se detalla su uso:",
         body_style
     ))
     
-    map_elements = [
-        ("Pasillos (Fondo Oscuro)", "Áreas de tránsito libre por donde se desplazan el Guardián y el Intruso."),
-        ("Estante Lleno (Borde Azul)", "Estanterías que contienen productos en cantidades normales (Arroz, Leche, Aceite, etc.)."),
-        ("Quiebre de Stock (Borde Rojo)", "Estanterías que se han quedado sin mercadería o tienen un stock muy bajo (menos del 20%). Requieren reposición."),
-        ("Guardián (Círculo Celeste 'G')", "Un robot patrullero inteligente que protege el inventario y detiene intrusos."),
-        ("Intruso (Círculo Rojo 'I')", "Un agente no autorizado que se mueve de manera evasiva para sustraer productos."),
-        ("Cámaras (Círculos Amarillos/Celestes)", "Los cuatro puntos de vigilancia del almacén. La cámara activa que transmite el video se ilumina en color celeste.")
-    ]
+    story.append(Paragraph("2.1. SIMULADOR DE ALMACÉN 2D", h2_style))
+    story.append(Paragraph(
+        "Es el mapa dinámico que muestra una vista aérea del almacén (5 filas por 5 columnas). Le permite ubicar físicamente los componentes en tiempo real:<br/>"
+        "- <b>Pasillos (Fondo Gris):</b> Caminos transitables.<br/>"
+        "- <b>Estantes con Borde Azul:</b> Almacenes llenos de mercadería.<br/>"
+        "- <b>Estantes con Borde Rojo:</b> Productos agotados (quiebre de stock).<br/>"
+        "- <b>Círculo Celeste ('G'):</b> Posición actual del robot Guardián.<br/>"
+        "- <b>Círculo Rojo ('I'):</b> Posición actual del Intruso dentro del almacén.<br/>"
+        "- <b>Círculos Amarillos/Celestes:</b> Ubicación de las cámaras. La cámara que transmite en vivo se ilumina de color celeste.",
+        body_style
+    ))
     
-    for title, desc in map_elements:
-        story.append(Paragraph(f"• <b>{title}</b>: {desc}", bullet_style))
-        
     story.append(PageBreak())
-    
-    # ---------------- SECTION 3 ----------------
-    story.append(Paragraph("3. Guía de los Módulos del Dashboard", h1_style))
-    story.append(Paragraph(
-        "La pantalla principal (Dashboard) está dividida en paneles de control y monitoreo. A continuación se explica cada uno de ellos de forma sencilla:",
-        body_style
-    ))
-    
-    story.append(Paragraph("3.1. Monitoreo de Video CCTV (Pipeline de Visión)", h2_style))
-    story.append(Paragraph(
-        "Muestra lo que la cámara seleccionada está visualizando. Al hacer clic en las pestañas superiores, puede inspeccionar los filtros que aplica el procesador digital de imágenes:",
-        body_style
-    ))
-    story.append(Paragraph("• <b>YOLOv8 Detect:</b> Vista final de seguridad. La inteligencia artificial dibuja un recuadro sobre los objetos (estantes o personas) mostrando un porcentaje de confianza.", bullet_style))
-    story.append(Paragraph("• <b>Original:</b> Imagen cruda capturada por la cámara.", bullet_style))
-    story.append(Paragraph("• <b>Grises / Filtro Gauss / Canny Edges:</b> Etapas de filtrado visual. Canny dibuja contornos brillantes sobre fondo negro, permitiendo detectar físicamente si el estante se encuentra vacío.", bullet_style))
-    
-    story.append(Paragraph("3.2. Panel de Control y Suspensión Ética", h2_style))
-    story.append(Paragraph(
-        "Este panel permite iniciar o pausar la simulación:",
-        body_style
-    ))
-    story.append(Paragraph("• <b>Ejecutar Paso:</b> Avanza la simulación un turno. Se calcula la posición de los agentes y se actualizan los sensores.", bullet_style))
-    story.append(Paragraph("• <b>Auto-Simulación:</b> Activa la marcha continua de la simulación cada 1.5 segundos.", bullet_style))
-    story.append(Paragraph("• <b>Reiniciar:</b> Restablece el stock e inventario y reposiciona a los agentes a su estado inicial.", bullet_style))
-    story.append(Paragraph("• <b>Banner de Confirmación Ética:</b> Si la cámara detecta al intruso con una certeza sospechosa moderada (entre 70% y 89%), el sistema se pausa. El operador humano debe evaluar la imagen del CCTV y hacer clic en <i>'Confirmar Amenaza'</i> para activar las alarmas y habilitar el movimiento de captura del Guardián.", bullet_style))
 
-    story.append(Paragraph("3.3. Modificación de Inventario Manual", h2_style))
+    story.append(Paragraph("2.2. PANEL DE CONTROL", h2_style))
     story.append(Paragraph(
-        "En la parte inferior izquierda, se presentan casillas numéricas para cada producto (Arroz, Leche, etc.). "
-        "Usted puede ingresar cualquier valor numérico para cambiar el stock disponible. Si el valor ingresado es menor o igual a 2, "
-        "verá cómo el estante en el mapa cambia dinámicamente a color rojo indicando quiebre de stock.",
+        "Es la botonera principal para manejar el tiempo de la simulación. Cuenta con tres botones principales:<br/>"
+        "- <b>Ejecutar Paso:</b> Avanza la simulación un turno (mueve a los agentes y actualiza las cámaras).<br/>"
+        "- <b>Auto-Simulación:</b> Hace que el sistema corra de forma continua y automática en tiempo real.<br/>"
+        "- <b>Reiniciar:</b> Restablece todo el inventario y reposiciona a los agentes al estado inicial de alerta.<br/>"
+        "- <b>Caja de Suspensión Ética (Banner Naranja):</b> Cuando la cámara de IA detecta un intruso con duda moderada (certeza entre 70% y 89%), la simulación se congela. El módulo exige al operador hacer clic en <b>'Confirmar Amenaza'</b> para liberar el movimiento de persecución del robot, o <b>'Descartar Alerta'</b> si es una falsa alarma.",
+        body_style
+    ))
+
+    story.append(Paragraph("2.3. MONITOREO DE CÁMARAS (PIPELINE OPENCV / YOLOv8)", h2_style))
+    story.append(Paragraph(
+        "Muestra el flujo de video en vivo de la cámara seleccionada en la lista desplegable. Cuenta con pestañas superiores que permiten ver cómo el procesador digital descompone la imagen para analizarla:<br/>"
+        "- <b>YOLOv8 Detect:</b> Vista de IA. Dibuja recuadros de color alrededor del intruso y los estantes, estimando el porcentaje de certeza física.<br/>"
+        "- <b>Original:</b> Transmisión visual sin alteraciones.<br/>"
+        "- <b>Grises / Filtro Gauss / Canny Edges:</b> Filtros de contorno en blanco y negro. Sirven para rastrear físicamente la silueta de los estantes y verificar si la mercadería ha desaparecido.",
+        body_style
+    ))
+
+    story.append(Paragraph("2.4. MODIFICAR INVENTARIO MANUAL", h2_style))
+    story.append(Paragraph(
+        "Es un panel de entrada directa de datos ubicado en la columna izquierda. Contiene casillas numéricas para ajustar el stock disponible de cada producto (Arroz, Azúcar, Leche, etc.). "
+        "Permite al operador simular manualmente el desabastecimiento: si escribe un número bajo (2 o menos), el sistema disparará las alertas de reposición y cambiará el estante en el mapa 2D a color rojo.",
+        body_style
+    ))
+
+    story.append(Paragraph("2.5. CEREBRO LÓGICO Y COPILOTO CONVERSACIONAL", h2_style))
+    story.append(Paragraph(
+        "Representa la mente del almacén. Contiene dos áreas:<br/>"
+        "- <b>Hechos Prolog e Inferencia:</b> Muestra la base de datos de reglas lógicas activas y el nivel de peligro (Bajo, Medio, Crítico).<br/>"
+        "- <b>Alarmas de Intrusión y Quiebre:</b> Indicadores luminosos que parpadean cuando hay una amenaza.<br/>"
+        "- <b>Copiloto de Seguridad:</b> Caja de chat amigable. El operador puede escribir preguntas como <i>'¿Qué estante está vacío?'</i> o <i>'¿Qué debo hacer ahora?'</i> y el asistente local responderá de manera comprensible indicando los pasos a seguir.",
+        body_style
+    ))
+
+    story.append(Paragraph("2.6. BÚSQUEDA COMPETITIVA (MINIMAX ALFA-BETA DEPTH 4)", h2_style))
+    story.append(Paragraph(
+        "Es el visor del cerebro táctico del robot Guardián. Muestra en lenguaje simple cómo el robot realiza cálculos matemáticos en milisegundos "
+        "para proyectar y predecir los movimientos del intruso a 4 jugadas de anticipación en el futuro, permitiéndole acorralarlo eficientemente "
+        "por la ruta más corta sin quedar atrapado en pasillos sin salida.",
         body_style
     ))
 
     story.append(PageBreak())
-    
-    # ---------------- SECTION 4 ----------------
-    story.append(Paragraph("3.4. Cerebro Lógico y Copiloto de Inteligencia Artificial", h2_style))
-    story.append(Paragraph(
-        "Este panel es el centro intelectual del prototipo:",
-        body_style
-    ))
-    story.append(Paragraph("• <b>Consola Prolog:</b> Muestra la base de datos de hechos lógicos activos (como posiciones en el mapa `celda(x,y)` e inventario de estantes).", bullet_style))
-    story.append(Paragraph("• <b>Indicadores de Alarma:</b> Rectángulos parpadeantes que indican si la alarma de Intrusión o de Quiebre de Stock están activadas.", bullet_style))
-    story.append(Paragraph("• <b>Copiloto de Seguridad Inteligente:</b> En este chat puede hacer preguntas directas en español (por ejemplo: <i>'¿Qué estantes están vacíos?'</i> o <i>'¿Dónde está la amenaza?'</i>). El sistema analizará las bases de datos locales y le responderá inmediatamente de forma concisa y amigable.", bullet_style))
 
-    story.append(Paragraph("3.5. Búsqueda Competitiva (Pensamiento del Guardián)", h2_style))
+    # ---------------- GUÍA PASO A PASO ----------------
+    story.append(Paragraph("3. Guía Paso a Paso para Operar el Sistema", h1_style))
     story.append(Paragraph(
-        "Muestra cómo el robot Guardián calcula su ruta ideal usando matemáticas de teoría de juegos (Minimax). "
-        "Usted podrá observar cuántas rutas y jugadas evalúa en milisegundos en el futuro para acorralar al intruso, "
-        "demostrando la eficiencia del motor de toma de decisiones.",
-        body_style
-    ))
-
-    # ---------------- SECTION 5 ----------------
-    story.append(Paragraph("4. Guía Paso a Paso para Navegar por la Simulación", h1_style))
-    story.append(Paragraph(
-        "Siga esta secuencia recomendada para experimentar todas las funcionalidades del prototipo:",
+        "Siga esta secuencia de operaciones en el navegador para explorar el funcionamiento interactivo del prototipo:",
         body_style
     ))
     
     steps = [
-        ("Inicializar el Sistema", "Abra la dirección <code>http://127.0.0.1:8000</code> en su navegador. El sistema iniciará en pausa ética debido a la detección del intruso con un 85% de confianza."),
-        ("Evaluar la Imagen de Seguridad", "Observe la pestaña <i>'YOLOv8 Detect'</i> en el panel CCTV para ver la silueta marcada del Intruso en el almacén."),
-        ("Confirmar la Alerta", "Haga clic en el botón naranja <b>'Confirmar Amenaza'</b>. Las alarmas de intrusión se activarán en rojo brillante en el panel del Copiloto."),
-        ("Activar la Marcha", "Haga clic en <b>'Auto-Simulación: ON'</b>. Verá cómo el Guardián (G) persigue al Intruso (I) por los pasillos paso a paso."),
-        ("Consultar al Copiloto", "En la caja de texto del chat, escriba la pregunta: <i>'¿Dónde está el intruso?'</i> y presione 'Consultar'. El Copiloto le indicará las coordenadas y el estado del robot."),
-        ("Simular Quiebre de Stock", "Durante la simulación, reduzca el stock de Leche a 0 en la casilla de inventario. Verá que la alarma de quiebre de stock se activa y el estante del mapa se torna rojo."),
-        ("Ver la Captura", "Cuando el Guardián alcanza la celda del Intruso, la simulación concluye con éxito informando de la captura en los logs."),
-        ("Reiniciar", "Haga clic en <b>'Reiniciar'</b> para restablecer la simulación a su estado inicial seguro.")
+        ("Carga Inicial", "Acceda a la URL de la simulación. Notará que inicia en pausa y el panel muestra un banner naranja de advertencia ética por sospecha de intrusión al 85%."),
+        ("Inspección de Video", "En el panel de cámaras (CCTV), observe las pestañas <i>'YOLOv8'</i> y <i>'Canny Edges'</i> para verificar la silueta detectada en el pasillo."),
+        ("Autorizar al Robot", "Haga clic en el botón naranja <b>'Confirmar Amenaza'</b>. Esto activará las sirenas y alarmas luminosas en el panel del Copiloto."),
+        ("Iniciar la Marcha", "Haga clic en <b>'Auto-Simulación: ON'</b>. Verá en el mapa 2D cómo el robot Guardián ('G') se desliza de forma fluida para perseguir al Intruso ('I')."),
+        ("Preguntar al Copiloto", "Escriba en la caja de chat: <i>'¿cuál es el estado de las alarmas?'</i> o <i>'¿dónde está el intruso?'</i> y presione 'Consultar'. El asistente local le dará un reporte instantáneo."),
+        ("Simular Desabastecimiento", "Cambie la cantidad de Leche a 0 en la casilla de inventario manual. Observe cómo se enciende la alarma de 'Quiebre de Stock' y el estante respectivo en el mapa 2D se torna rojo."),
+        ("Captura y Cierre", "Observe en el mapa cómo el Guardián intercepta al Intruso. La simulación se detendrá automáticamente registrando el éxito en la bitácora."),
+        ("Reinicio Seguro", "Haga clic en <b>'Reiniciar'</b> para restablecer los valores de stock y devolver a los agentes a su posición inicial segura de patrullaje.")
     ]
     
     for num, (title, desc) in enumerate(steps, 1):
