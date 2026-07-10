@@ -605,3 +605,40 @@ function renderStockControls(stockList) {
 setInterval(() => {
     // Trigger simple redraw or rely on CSS animation
 }, 500);
+
+// Canvas click listener to support interactive play (user controls the Intruder!)
+canvas.addEventListener("click", async (e) => {
+    // If auto simulation is currently active, ignore manual moves
+    if (autoSimInterval) return;
+    
+    // Calculate clicked cell coordinates (1-indexed, 5x5 grid)
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    // Scale according to actual canvas display size vs internal coordinates
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const internalX = clickX * scaleX;
+    const internalY = clickY * scaleY;
+    
+    const cellSize = canvas.width / 5;
+    const cellX = Math.floor(internalX / cellSize) + 1;
+    const cellY = Math.floor(internalY / cellSize) + 1;
+    
+    // Send step command with target coordinates to FastAPI
+    try {
+        const res = await fetch(`${API_URL}/api/step?camera_id=${currentCamera}&intruder_x=${cellX}&intruder_y=${cellY}`, { method: "POST" });
+        if (!res.ok) throw new Error("Error executing manual play step");
+        const data = await res.json();
+        updateUI(data);
+        
+        // Automatically fetch copilot explanation when a threat update happens
+        if (data.threat_chain && data.threat_chain.length > 0) {
+            triggerCopilotTranslation();
+        }
+    } catch (err) {
+        console.error("Manual move failed", err);
+    }
+});

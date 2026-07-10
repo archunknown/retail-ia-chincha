@@ -366,7 +366,7 @@ def get_state(camera_id: str = None):
         raise HTTPException(status_code=500, detail="Unable to retrieve Prolog state")
 
 @app.post("/api/step")
-def step_simulation(camera_id: str = None):
+def step_simulation(camera_id: str = None, intruder_x: int = None, intruder_y: int = None):
     if grid_state['game_over']:
         return get_state(camera_id)
         
@@ -399,56 +399,75 @@ def step_simulation(camera_id: str = None):
             return get_state(camera_id)
 
         # 1. Intruder's Turn:
-        # Check if adjacent to a shelf (value 1) and rob it
-        ix, iy = grid_state['intruder_pos']
-        robbed = False
-        
-        # Check for adjacent shelves with stock > 0
-        shelves_positions = {}
-        for cell in p_state['celdas']:
-            if cell['val'] == 1: # Full shelf
-                shelves_positions[(cell['x'], cell['y'])] = True
+        if intruder_x is not None and intruder_y is not None:
+            # Manual Mode: Move the intruder to target coordinates if adjacent and walkable/shelf
+            if 1 <= intruder_x <= 5 and 1 <= intruder_y <= 5:
+                dist = abs(intruder_x - old_i[0]) + abs(intruder_y - old_i[1])
+                target_cell = None
+                for cell in p_state['celdas']:
+                    if cell['x'] == intruder_x and cell['y'] == intruder_y:
+                        target_cell = cell
+                        break
                 
-        adjacent_shelf_pos = None
-        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
-            ax, ay = ix + dx, iy + dy
-            if (ax, ay) in shelves_positions:
-                adjacent_shelf_pos = (ax, ay)
-                break
-                
-        if adjacent_shelf_pos:
-            # Find which estante is at this position
-            estante_id = None
-            for s in p_state['stock']:
-                # Find estante position from Prolog setup: we know by default Y=1,3,5 are shelves
-                # Let's map positions:
-                # estante_1: (1,1), estante_2: (3,1), estante_3: (5,1)
-                # estante_4: (1,3), estante_5: (3,3), estante_6: (5,3)
-                # estante_7: (1,5), estante_8: (5,5)
-                # Let's dynamically locate it
-                # We can call Prolog stock update
-                pass
+                # Check if it is a path (0) or a full shelf (1) or an empty shelf (10)
+                if dist <= 1 and target_cell and target_cell['val'] in (0, 1, 10):
+                    # Valid move!
+                    grid_state['intruder_pos'] = [intruder_x, intruder_y]
+                    grid_state['simulation_logs'].append(f"[Modo Manual] Intruso se movió de {old_i} a {grid_state['intruder_pos']}.")
+                    
+                    # If they clicked on a shelf (value 1), trigger robbery
+                    if target_cell['val'] == 1:
+                        pos_to_id = {
+                            (1,1): 'estante_1', (3,1): 'estante_2', (5,1): 'estante_3',
+                            (1,3): 'estante_4', (3,3): 'estante_5', (5,3): 'estante_6',
+                            (1,5): 'estante_7', (5,5): 'estante_8'
+                        }
+                        estante_id = pos_to_id.get((intruder_x, intruder_y))
+                        if estante_id:
+                            requests.post(f"{prolog_url}/update_stock", json={'estante_id': estante_id, 'cantidad': 0})
+                            grid_state['simulation_logs'].append(f"[Modo Manual] Intruso robó el {estante_id}. Stock reducido a 0.")
+                            grid_state['message'] = f"¡Robo manual! Intruso vació el {estante_id}."
+                else:
+                    grid_state['message'] = "Movimiento manual inválido. Seleccione un pasillo o estante adyacente."
+                    return get_state(camera_id)
+            else:
+                grid_state['message'] = "Coordenadas fuera de rango."
+                return get_state(camera_id)
+        else:
+            # Autonomous Mode: Intruder runs its own AI
+            ix, iy = grid_state['intruder_pos']
+            robbed = False
             
-            # Simple mapping
-            pos_to_id = {
-                (1,1): 'estante_1', (3,1): 'estante_2', (5,1): 'estante_3',
-                (1,3): 'estante_4', (3,3): 'estante_5', (5,3): 'estante_6',
-                (1,5): 'estante_7', (5,5): 'estante_8'
-            }
-            estante_id = pos_to_id.get(adjacent_shelf_pos)
+            # Check for adjacent shelves with stock > 0
+            shelves_positions = {}
+            for cell in p_state['celdas']:
+                if cell['val'] == 1: # Full shelf
+                    shelves_positions[(cell['x'], cell['y'])] = True
+                    
+            adjacent_shelf_pos = None
+            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+                ax, ay = ix + dx, iy + dy
+                if (ax, ay) in shelves_positions:
+                    adjacent_shelf_pos = (ax, ay)
+                    break
+                    
+            if adjacent_shelf_pos:
+                pos_to_id = {
+                    (1,1): 'estante_1', (3,1): 'estante_2', (5,1): 'estante_3',
+                    (1,3): 'estante_4', (3,3): 'estante_5', (5,3): 'estante_6',
+                    (1,5): 'estante_7', (5,5): 'estante_8'
+                }
+                estante_id = pos_to_id.get(adjacent_shelf_pos)
+                if estante_id:
+                    requests.post(f"{prolog_url}/update_stock", json={'estante_id': estante_id, 'cantidad': 0})
+                    robbed = True
+                    grid_state['simulation_logs'].append(f"Intruso robó el {estante_id} en {adjacent_shelf_pos}. Stock reducido a 0 (Quiebre de Stock).")
+                    grid_state['message'] = f"¡Robo en progreso! Intruso vació el {estante_id}."
             
-            if estante_id:
-                # Robbery! Set stock to 0
-                requests.post(f"{prolog_url}/update_stock", json={'estante_id': estante_id, 'cantidad': 0})
-                robbed = True
-                grid_state['simulation_logs'].append(f"Intruso robó el {estante_id} en {adjacent_shelf_pos}. Stock reducido a 0 (Quiebre de Stock).")
-                grid_state['message'] = f"¡Robo en progreso! Intruso vació el {estante_id}."
-        
-        if not robbed:
-            # Move intruder towards closest full shelf, avoiding guardian
-            new_i = find_best_move_intruder(grid_state['guardian_pos'], grid_state['intruder_pos'], p_state['celdas'])
-            grid_state['intruder_pos'] = list(new_i)
-            grid_state['simulation_logs'].append(f"Intruso se movió de {old_i} a {new_i}.")
+            if not robbed:
+                new_i = find_best_move_intruder(grid_state['guardian_pos'], grid_state['intruder_pos'], p_state['celdas'])
+                grid_state['intruder_pos'] = list(new_i)
+                grid_state['simulation_logs'].append(f"Intruso se movió de {old_i} a {new_i}.")
 
         # 2. Guardian's Turn (Runs Minimax):
         weights = {'w1': 5.0, 'w2': 15.0, 'w3': 10.0}
