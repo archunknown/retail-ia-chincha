@@ -159,7 +159,8 @@ def create_manual():
         "- <b>Estantes con Borde Rojo:</b> Productos agotados (quiebre de stock).<br/>"
         "- <b>Círculo Celeste ('G'):</b> Posición actual del robot Guardián.<br/>"
         "- <b>Círculo Rojo ('I'):</b> Posición actual del Intruso dentro del almacén.<br/>"
-        "- <b>Círculos Amarillos/Celestes:</b> Ubicación de las cámaras. La cámara que transmite en vivo se ilumina de color celeste.",
+        "- <b>Círculos Amarillos/Celestes:</b> Ubicación de las cámaras. La cámara que transmite en vivo se ilumina de color celeste.<br/>"
+        "- <b>Juego Interactivo Manual:</b> Con la Auto-Simulación apagada, usted puede cliquear directamente en las celdas adyacentes al Intruso ('I') para moverlo manualmente (por los pasillos o hacia los estantes para robarlos). El Guardián ('G') reaccionará inmediatamente calculando su movimiento de persecución mediante inteligencia artificial.",
         body_style
     ))
     

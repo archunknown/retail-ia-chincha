@@ -117,7 +117,22 @@ Una vez levantado el servidor:
    Servidor Prolog inicializado exitosamente.
    INFO:     Application startup complete.
    ```
-3. **Interacción**: Pruebe haciendo clic en **"Confirmar Amenaza"** para activar las sirenas e iniciar el bucle con **"Auto-Simulación: ON"**.
+3. **Interacción y Juego Manual**: Con el modo de simulación automática desactivado (Auto-Simulación: OFF), haga clic sobre las celdas adyacentes al Intruso ('I') directamente en el mapa 2D del navegador para controlarlo. El robot Guardián ('G') calculará inmediatamente su jugada óptima por Minimax y lo perseguirá.
+
+---
+
+## 🕹️ Modo de Juego Interactivo (Jugador vs. IA)
+
+El prototipo soporta dos modalidades de ejecución en tiempo real:
+- **Simulación Autónoma**: El Intruso evalúa su propia heurística para robar estanterías mientras el Guardián lo busca por Minimax. Se activa presionando **Auto-Simulación: ON**.
+- **Juego Interactivo (Ajedrez táctico)**: El operador del dashboard toma el papel del Intruso. Al hacer clic sobre pasillos o estanterías adyacentes en el Canvas 2D, el Intruso se desplaza (y vacía el estante si es una estantería activa). Inmediatamente, la IA de toma de decisiones del Guardián calcula la mejor jugada defensiva por Minimax (profundidad 4 con poda Alfa-Beta) para interceptarlo.
+
+---
+
+## ⚡ Optimización de Latencia en Windows
+
+Para eliminar la latencia por comunicación de red local:
+- Se configuró la IP `127.0.0.1` en lugar del host lógico `localhost` en las llamadas a Prolog. Esto evita el proceso lento de resolución DNS dual (IPv6/IPv4) de Windows, reduciendo el retardo de comunicación por turno de ~200ms a menos de **1ms**, permitiendo movimientos fluidos en el Canvas.
 
 ---
 
@@ -132,6 +147,8 @@ Una vez levantado el servidor:
 *   `/frontend`
     *   `index.html`: Layout de 3 columnas fluidas.
     *   `style.css`: Estilos visuales futuristas en modo oscuro y responsive.
-    *   `app.js`: Lógica del cliente, fetch a FastAPI y loop de animación interpolada en Canvas.
-*   `test_backend.py`: Batería de pruebas unitarias para el motor Minimax, YOLO y fallbacks.
-*   `Manual_Usuario_Retail_IA_Chincha.pdf`: Manual en PDF no técnico para el personal de tienda.
+    *   `app.js`: Lógica del cliente, fetch a FastAPI, canvas click event listener y animación interpolada.
+*   `test_backend.py`: Batería de pruebas de integración para el backend y fallbacks.
+*   `requirements.txt`: Archivo de dependencias del sistema.
+*   `Manual_Usuario_Retail_IA_Chincha.pdf`: Manual de usuario descriptivo para personal no técnico.
+*   `generate_pdf_manual.py`: Script para regenerar el manual PDF.
